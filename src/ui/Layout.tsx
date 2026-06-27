@@ -1,3 +1,4 @@
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { useViewStore } from '../store/viewStore';
 import type { SidebarTab } from '../store/viewStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,13 +11,15 @@ import SigmaNotation from '../composer/SigmaNotation';
 import TransformControls from '../composer/TransformControls';
 import ParametricAnimator from '../composer/ParametricAnimator';
 import Canvas2D from '../canvas/Canvas2D';
-import Canvas3D from '../canvas/Canvas3D';
 import ParamSliders from '../composer/ParamSliders';
 import AlgebraPanel from '../panels/AlgebraPanel';
-import HistoryPanel from '../ui/HistoryPanel';
-import ExportPanel from '../ui/ExportPanel';
-import GuidedExplorations from '../ui/GuidedExplorations';
 import Toolbar from '../ui/Toolbar';
+
+// Heavy / on-demand chunks — split out of the initial bundle.
+const Canvas3D = lazy(() => import('../canvas/Canvas3D'));
+const HistoryPanel = lazy(() => import('../ui/HistoryPanel'));
+const ExportPanel = lazy(() => import('../ui/ExportPanel'));
+const GuidedExplorations = lazy(() => import('../ui/GuidedExplorations'));
 
 const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [
   { key: 'browse', label: 'Browse' },
@@ -25,6 +28,19 @@ const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [
   { key: 'transform', label: 'Transform' },
   { key: 'parametric', label: 'P(t)' },
 ];
+
+// ── Loading fallback for lazy chunks ─────────────────────────────────────────
+
+function ChunkFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div
+        className="h-6 w-6 animate-spin rounded-full border-2"
+        style={{ borderColor: 'var(--border)', borderTopColor: 'var(--accent)' }}
+      />
+    </div>
+  );
+}
 
 // ── Sidebar edge toggle (visible when sidebar is open) ───────────────────────
 
@@ -66,6 +82,25 @@ export default function Layout() {
   const setSidebarTab = useViewStore((s) => s.setSidebarTab);
   const activePanel = useViewStore((s) => s.activePanel);
   const setActivePanel = useViewStore((s) => s.setActivePanel);
+  const algebraPanelOpen = useViewStore((s) => s.algebraPanelOpen);
+  const toggleAlgebraPanel = useViewStore((s) => s.toggleAlgebraPanel);
+
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Esc closes whichever panel is open; focus the overlay when it opens.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (activePanel) setActivePanel(null);
+      else if (algebraPanelOpen) toggleAlgebraPanel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activePanel, algebraPanelOpen, setActivePanel, toggleAlgebraPanel]);
+
+  useEffect(() => {
+    if (activePanel) overlayRef.current?.focus();
+  }, [activePanel]);
 
   return (
     <div
@@ -94,19 +129,22 @@ export default function Layout() {
               <div className="flex min-w-[320px] flex-1 flex-col overflow-hidden">
                 {/* Sidebar tab bar */}
                 <div
+                  role="tablist"
+                  aria-label="Sidebar tools"
                   className="flex shrink-0 items-center gap-1 px-2 py-1.5"
                   style={{ borderBottom: '1px solid var(--border)' }}
                 >
                   {SIDEBAR_TABS.map(({ key, label }) => (
                     <button
                       key={key}
+                      role="tab"
+                      aria-selected={sidebarTab === key}
                       onClick={() => setSidebarTab(key)}
                       className="rounded-full px-2.5 py-1 text-[11px] font-medium transition-all"
                       style={{
                         background:
                           sidebarTab === key ? 'var(--accent)' : 'transparent',
-                        color:
-                          sidebarTab === key ? '#fff' : 'var(--text-muted)',
+                        color: sidebarTab === key ? '#fff' : 'var(--text-muted)',
                       }}
                     >
                       {label}
@@ -114,33 +152,51 @@ export default function Layout() {
                   ))}
                 </div>
 
-                {/* Tab content */}
-                <div className="flex flex-1 flex-col overflow-y-auto">
+                {/* Tab content — each tab owns its own scroll region so
+                    nothing clips or buries sibling controls. */}
+                <div className="flex min-h-0 flex-1 flex-col">
                   {sidebarTab === 'browse' && (
                     <>
-                      <FunctionBrowser />
-                      <div
-                        className="mx-3 my-1 shrink-0"
-                        style={{ borderTop: '1px solid var(--border)' }}
-                      />
-                      <FunctionList />
-                      <div className="flex-1" />
-                      <FunctionBar />
+                      {/* Cards + active list scroll together… */}
+                      <div className="min-h-0 flex-1 overflow-y-auto">
+                        <FunctionBrowser />
+                        <div
+                          className="mx-3 my-1"
+                          style={{ borderTop: '1px solid var(--border)' }}
+                        />
+                        <FunctionList />
+                      </div>
+                      {/* …while the custom-expression bar stays pinned. */}
+                      <div className="shrink-0">
+                        <FunctionBar />
+                      </div>
                     </>
                   )}
                   {sidebarTab === 'compose' && (
-                    <>
+                    <div className="min-h-0 flex-1 overflow-y-auto">
                       <SnapBlocks />
                       <div
-                        className="mx-3 my-1 shrink-0"
+                        className="mx-3 my-1"
                         style={{ borderTop: '1px solid var(--border)' }}
                       />
                       <FunctionCombiner />
-                    </>
+                    </div>
                   )}
-                  {sidebarTab === 'sigma' && <SigmaNotation />}
-                  {sidebarTab === 'transform' && <TransformControls />}
-                  {sidebarTab === 'parametric' && <ParametricAnimator />}
+                  {sidebarTab === 'sigma' && (
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      <SigmaNotation />
+                    </div>
+                  )}
+                  {sidebarTab === 'transform' && (
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      <TransformControls />
+                    </div>
+                  )}
+                  {sidebarTab === 'parametric' && (
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      <ParametricAnimator />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -181,17 +237,15 @@ export default function Layout() {
         <main className="flex flex-1 flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 overflow-hidden">
             {(mode === '2d' || mode === 'split') && (
-              <div
-                className={`h-full ${mode === 'split' ? 'w-1/2' : 'w-full'}`}
-              >
+              <div className={`h-full ${mode === 'split' ? 'w-1/2' : 'w-full'}`}>
                 <Canvas2D />
               </div>
             )}
             {(mode === '3d' || mode === 'split') && (
-              <div
-                className={`h-full ${mode === 'split' ? 'w-1/2' : 'w-full'}`}
-              >
-                <Canvas3D />
+              <div className={`h-full ${mode === 'split' ? 'w-1/2' : 'w-full'}`}>
+                <Suspense fallback={<ChunkFallback />}>
+                  <Canvas3D />
+                </Suspense>
               </div>
             )}
           </div>
@@ -220,11 +274,16 @@ export default function Layout() {
             {/* Slide-in panel */}
             <motion.div
               key="overlay-panel"
+              ref={overlayRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${activePanel} panel`}
+              tabIndex={-1}
               initial={{ x: 380, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 380, opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed right-0 top-0 z-50 flex h-full w-[360px] flex-col"
+              className="fixed right-0 top-0 z-50 flex h-full w-[360px] flex-col outline-none"
               style={{
                 background: 'var(--bg-secondary)',
                 borderLeft: '1px solid var(--border)',
@@ -234,9 +293,10 @@ export default function Layout() {
               {/* Close button */}
               <button
                 onClick={() => setActivePanel(null)}
+                aria-label="Close panel"
                 className="absolute right-2 top-2 z-10 rounded-md p-1.5 transition-colors hover:bg-white/10"
                 style={{ color: 'var(--text-muted)' }}
-                title="Close"
+                title="Close (Esc)"
               >
                 <svg
                   width="14"
@@ -251,9 +311,11 @@ export default function Layout() {
                 </svg>
               </button>
 
-              {activePanel === 'history' && <HistoryPanel />}
-              {activePanel === 'export' && <ExportPanel />}
-              {activePanel === 'guided' && <GuidedExplorations />}
+              <Suspense fallback={<ChunkFallback />}>
+                {activePanel === 'history' && <HistoryPanel />}
+                {activePanel === 'export' && <ExportPanel />}
+                {activePanel === 'guided' && <GuidedExplorations />}
+              </Suspense>
             </motion.div>
           </>
         )}

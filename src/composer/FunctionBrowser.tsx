@@ -19,41 +19,42 @@ const CATEGORY_LABELS: Record<FunctionCategory, { label: string; icon: string }>
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as FunctionCategory[];
 
-// Brief one-line descriptions for common presets (keyed by name)
+// Brief one-line descriptions, keyed by the exact preset names in presets.ts.
 const DESCRIPTIONS: Record<string, string> = {
+  // Trigonometric
   'Sine Wave': 'Classic oscillating wave',
   'Cosine Wave': 'Phase-shifted sinusoid',
   'Tangent': 'Periodic with asymptotes',
+  'Sine + Cosine Combo': 'Superposed sinusoids',
+  'Damped Oscillation': 'Decaying oscillation',
   'Secant': 'Reciprocal of cosine',
-  'Cosecant': 'Reciprocal of sine',
-  'Cotangent': 'Reciprocal of tangent',
-  'Arcsin': 'Inverse sine function',
-  'Arccos': 'Inverse cosine function',
-  'Arctan': 'Smooth S-shaped curve',
-  'Hyperbolic Sine': 'Exponential-based curve',
+  // Polynomial
   'Linear': 'Straight line',
   'Quadratic': 'Parabolic curve',
   'Cubic': 'S-shaped polynomial',
-  'Quartic': 'Double-well potential',
-  'Absolute Value': 'V-shaped graph',
-  'Exponential': 'Rapid growth/decay',
-  'Natural Log': 'Slowly increasing curve',
   'Power Function': 'Variable exponent',
-  'Gaussian Decay': 'Bell-shaped falloff',
-  'Log Base 10': 'Common logarithm',
-  'Reciprocal': 'Hyperbola with asymptotes',
+  'Quartic': 'Double-well potential',
+  // Exponential
+  'Exponential Growth / Decay': 'Rapid growth or decay',
+  'Natural Logarithm': 'Slowly increasing curve',
+  'Logistic (Sigmoid)': 'S-shaped saturation curve',
+  'Exponential Decay with Offset': 'Decays toward an asymptote',
+  // Special
+  'Absolute Value': 'V-shaped graph',
   'Square Root': 'Half parabola, sideways',
+  'Gaussian (Bell Curve)': 'Bell-shaped falloff',
   'Sinc Function': 'Dampened oscillation',
-  'Step Function': 'Discontinuous jump',
-  'Floor Function': 'Staircase pattern',
-  'Gaussian': 'Normal distribution bell',
+  'Reciprocal (1/x)': 'Hyperbola with asymptotes',
+  'Circular / Semicircle': 'Arc of a circle',
+  // Statistical
+  'Normal Distribution PDF': 'Normal distribution bell',
   'Sigmoid': 'S-shaped logistic curve',
-  'Logistic Growth': 'Population growth model',
   'Laplace Distribution': 'Sharp-peaked distribution',
-  'Cauchy Distribution': 'Heavy-tailed distribution',
-  'Damped Sine': 'Decaying oscillation',
-  'Sawtooth': 'Repeating ramp wave',
-  'Triangle Wave': 'Symmetric zigzag',
+  'Log-Normal PDF Approx': 'Right-skewed distribution',
+  // Piecewise
+  'Step Function (tanh approx)': 'Smooth discontinuous jump',
+  'Smooth Ramp': 'Soft ReLU-style bend',
+  'Bump Function': 'Compact-support hump',
 };
 
 // ── Thumbnail component ──────────────────────────────────────────────────────

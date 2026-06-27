@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFunctionStore } from '../store/functionStore';
 import { useViewStore } from '../store/viewStore';
-import AlgebraSteps from './AlgebraSteps';
-import Properties from './Properties';
+
+// Both pull in the symbolic engine (nerdamer); load it only when the
+// algebra panel is actually opened.
+const AlgebraSteps = lazy(() => import('./AlgebraSteps'));
+const Properties = lazy(() => import('./Properties'));
 
 type Tab = 'steps' | 'properties';
 
@@ -93,29 +96,31 @@ export default function AlgebraPanel() {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto">
-            <AnimatePresence mode="wait">
-              {activeTab === 'steps' ? (
-                <motion.div
-                  key="steps"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <AlgebraSteps />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="properties"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Properties />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <Suspense fallback={null}>
+              <AnimatePresence mode="wait">
+                {activeTab === 'steps' ? (
+                  <motion.div
+                    key="steps"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <AlgebraSteps />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="properties"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Properties />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Suspense>
           </div>
         </motion.aside>
       )}

@@ -102,7 +102,7 @@ export default function ParamSliders() {
 
   return (
     <div
-      className="flex flex-col gap-3 px-4 py-3"
+      className="flex max-h-[42%] shrink-0 flex-col gap-3 overflow-y-auto px-4 py-3"
       style={{
         background: 'var(--bg-secondary)',
         borderTop: '1px solid var(--border)',

@@ -15,6 +15,8 @@ export default function Toolbar() {
   const setMode = useViewStore((s) => s.setMode);
   const gridType = useViewStore((s) => s.gridType);
   const setGridType = useViewStore((s) => s.setGridType);
+  const theme = useViewStore((s) => s.theme);
+  const toggleTheme = useViewStore((s) => s.toggleTheme);
   const algebraPanelOpen = useViewStore((s) => s.algebraPanelOpen);
   const toggleAlgebraPanel = useViewStore((s) => s.toggleAlgebraPanel);
   const toggleSidebar = useViewStore((s) => s.toggleSidebar);
@@ -49,11 +51,13 @@ export default function Toolbar() {
 
       {/* Center: View mode buttons */}
       <div className="flex flex-1 items-center justify-center">
-        <div className="flex rounded-lg p-0.5" style={{ background: 'var(--bg-tertiary)' }}>
+        <div className="flex gap-0.5 rounded-lg p-0.5" style={{ background: 'var(--bg-tertiary)' }}>
           {VIEW_MODES.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setMode(key)}
+              aria-pressed={mode === key}
+              aria-label={`${label} view`}
               className="relative rounded-md px-4 py-1 text-xs font-medium transition-colors duration-200"
               style={{
                 color: mode === key ? '#fff' : 'var(--text-muted)',
@@ -75,10 +79,13 @@ export default function Toolbar() {
 
       {/* Right: Grid toggle, Algebra panel, Settings */}
       <div className="flex items-center gap-1">
-        {/* Grid type cycle: cartesian → polar → spherical */}
+        {/* Grid type cycle. Spherical is 3D-only, so 2D cycles cartesian ↔ polar. */}
         <button
           onClick={() => {
-            const cycle: Array<'cartesian' | 'polar' | 'spherical'> = ['cartesian', 'polar', 'spherical'];
+            const cycle: Array<'cartesian' | 'polar' | 'spherical'> =
+              mode === '2d'
+                ? ['cartesian', 'polar']
+                : ['cartesian', 'polar', 'spherical'];
             const idx = cycle.indexOf(gridType);
             setGridType(cycle[(idx + 1) % cycle.length]);
           }}
@@ -166,6 +173,7 @@ export default function Toolbar() {
         {/* Algebra panel toggle */}
         <button
           onClick={toggleAlgebraPanel}
+          aria-pressed={algebraPanelOpen}
           className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs transition-colors duration-200"
           style={{
             background: algebraPanelOpen ? 'var(--accent)' : 'transparent',
@@ -179,16 +187,26 @@ export default function Toolbar() {
           <span className="hidden sm:inline">Algebra</span>
         </button>
 
-        {/* Settings gear */}
+        {/* Theme toggle (light / dark) */}
         <button
+          onClick={toggleTheme}
           className="rounded-md p-1.5 transition-colors duration-200 hover:bg-white/10"
-          style={{ color: 'var(--text-muted)' }}
-          title="Settings"
+          style={{ color: 'var(--text-secondary)' }}
+          title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="8" cy="8" r="2.5" />
-            <path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.9 2.9l1.4 1.4M11.7 11.7l1.4 1.4M2.9 13.1l1.4-1.4M11.7 4.3l1.4-1.4" />
-          </svg>
+          {theme === 'dark' ? (
+            // Sun — click for light
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="8" r="3" />
+              <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.9 2.9l1.1 1.1M12 12l1.1 1.1M2.9 13.1l1.1-1.1M12 4l1.1-1.1" />
+            </svg>
+          ) : (
+            // Moon — click for dark
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" />
+            </svg>
+          )}
         </button>
       </div>
     </div>
@@ -212,6 +230,7 @@ function PanelToggle({
   return (
     <button
       onClick={() => setActivePanel(panel)}
+      aria-pressed={isActive}
       className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs transition-colors duration-200"
       style={{
         background: isActive ? 'var(--accent)' : 'transparent',
